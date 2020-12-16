@@ -151,11 +151,10 @@ def create_ps(ldap, ad, args):
             
             
 def print_ldapsearch():
-    print("ldapsearch -H <ldap server> -b <search base> -D <bind user> -W -s sub "
+    print("ldapsearch -H <ldap server> -b <search base> -D <bind user> -W -s sub -E pr=1000/noprompt "
           "'(&(|(objectclass=user)(objectclass=posixAccount)(objectclass=group)(objectclass=posixGroup))(!(objectclass=computer)))'"
           " uid uidNumber gid gidNumber memberOf gecos Name GivenName sAMAccountName cn dn memberUid Member UniqueMember groupOfUniqueNames members objectClass primaryGroupID distinguishedName unixHomeDirectory loginShell"
     ) 
-
 
 
 if __name__ == "__main__":
