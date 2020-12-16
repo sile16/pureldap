@@ -13,7 +13,12 @@ def create_ps(ldap, ad, args):
     user_attributes = ['uidNumber', 'gidNumber', 'unixHomeDirectory', 'loginShell']
 
     # args.users is supplied by the command line
-    for user in args.users:
+    if args.allusers:
+        # get all ldap objects, with objectClass == User
+        userlist = [ldap.data[k]['sam'] for k in ldap.data if ldap.data[k]['objectClass'] == 'user']
+    else:
+        userlist = args.users
+    for user in userlist:
         if user in ldap.map_user_dn:
             ldap_dn = ldap.map_user_dn[user]
             ldap_gidNumber = ldap.data[ldap_dn]['gidNumber']
@@ -23,11 +28,11 @@ def create_ps(ldap, ad, args):
 
             # see if LDAP has the primary group
             # Just checking for oddness in LDAP
-            if ldap_gidNumber in ldap.map_gidNumber_dn:
-                ldap_group_dn = ldap.map_gidNumber_dn[ldap_gidNumber]
-                ldap_group_dns[ldap_group_dn] = True
-            else:
-                print(f"# LDAP is missing primary group for user {user}, gidNumber{ldap_gidNumber}")
+            # if ldap_gidNumber in ldap.map_gidNumber_dn:
+            #    ldap_group_dn = ldap.map_gidNumber_dn[ldap_gidNumber]
+            #    ldap_group_dns[ldap_group_dn] = True
+            # else:
+            #    print(f"# LDAP is missing primary group for user {user}, gidNumber{ldap_gidNumber}")
                 
 
             # Does the user already exist in AD ?
@@ -102,7 +107,7 @@ def create_ps(ldap, ad, args):
             for ldap_member_dn in ldap.data[ldap_group_dn]['member']:
                 if ldap_member_dn in ldap.data:  # does LDAP have this member sam ? 
                     member_sam = ldap.data[ldap_member_dn]['sam']
-                    if not member_sam or member_sam not in args.users:
+                    if not member_sam or member_sam not in userlist:
                         # only add members we care about 
                         continue
 
@@ -168,6 +173,7 @@ if __name__ == "__main__":
     parser.add_argument('--group-ou-dn', type=str, 
       help="Full DN for the OU to create groups into")
     parser.add_argument('-u', '--users', nargs='+', default=[])
+    parser.add_argument('--allusers', action='store_true', help="Look at ALL users in LDAP, ignores --users")
     args = parser.parse_args()
 
     if args.ldapsearch:
