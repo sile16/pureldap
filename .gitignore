@@ -3,9 +3,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+
 *.txt
 .DS_Store
 vscode.workspae.code-workspace
+.vscode/*
 
 # C extensions
 *.so

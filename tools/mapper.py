@@ -25,7 +25,7 @@ def show_group(ad, ldap):
 
 def create_ps(ldap, ad, args):
     # user & group are the short name like sam & uid
-    ldap_group_dns = [] # keep track of relevant groups we have to support
+    ldap_group_dns = {} # keep track of relevant groups we have to support
 
     # user attributes we want to copy from ldap -> AD
     user_attributes = ['uidNumber', 'gidNumber', 'unixHomeDirectory', 'loginShell']
@@ -43,7 +43,7 @@ def create_ps(ldap, ad, args):
             # Just checking for oddness in LDAP
             if ldap_gidNumber in ldap.map_gidNumber_dn:
                 ldap_group_dn = ldap.map_gidNumber_dn[ldap_gidNumber]
-                ldap_group_dns.append(ldap_group_dn)
+                ldap_group_dns[ldap_group_dn] = True
             else:
                 print(f"# LDAP is missing primary group for user {user}, gidNumber{ldap_gidNumber}")
                 
@@ -78,7 +78,7 @@ def create_ps(ldap, ad, args):
 
             # add all the groups i'm a member of to the list to check
             for g in ldap.data[ldap_dn]['memberOf']:
-                ldap_group_dns.append(g)
+                ldap_group_dns[g] = True
         else:
             print(f"# User {user} not found in ldap")
 
@@ -120,6 +120,9 @@ def create_ps(ldap, ad, args):
             for ldap_member_dn in ldap.data[ldap_group_dn]['member']:
                 if ldap_member_dn in ldap.data:  # does LDAP have this member sam ? 
                     member_sam = ldap.data[ldap_member_dn]['sam']
+                    if not member_sam or member_sam not in args.users:
+                        # only add members we care about
+                        continue
 
                     if in_ad:
                         # this means we have a target group in ad already, but the member is
