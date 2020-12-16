@@ -89,10 +89,6 @@ class PureLDIF(LDIFParser):
 
         uid = entry['uid'][0].decode('utf-8')
 
-        if 'epederse' in uid or 'epederse' in uid:
-            ecount = 0
-            ecount += 1
-
         self.data[dn]['sam'] = uid
         self.data[dn]['uid'] = uid
         self.map_user_dn[uid] = dn
@@ -135,14 +131,6 @@ class PureLDIF(LDIFParser):
         gidNumber = entry['gidNumber'][0].decode('utf-8')
         self.data[dn]['gidNumber'] = gidNumber
 
-        if 'miadams' in groupname:
-            asd =32
-            asd +=1
-        
-        if gidNumber == '86527':
-                counasdf= 32
-                counasdf+=1
-
         self.map_gidNumber_dn[gidNumber] = dn
         self.map_group_dn[groupname] = dn
 
@@ -181,7 +169,6 @@ class PureLDIF(LDIFParser):
         elif 'posixgroup' in oc:
             self.handle_posixgroup(dn, entry)
 
-
     def check_unknown_members(self):
         for m in self.unknown_members:
             if not self.data[m]['objectClass'] == 'group':
@@ -193,16 +180,18 @@ class PureLDIF(LDIFParser):
         count = 0
         processed = 0
         for dn in self.data:
+            # even if i import from ldap I set internally objectClass to group
+            # during the import.
             if self.data[dn]['objectClass'] == 'group':
                 processed += 1
                 if len(self.data[dn]['memberOf']) > 0:
-                    #print("Group {} is a nested group".format(dn))
+                    print("Group {} is a nested group".format(dn))
                     count += 1
                 for member_dn in self.data[dn]['member']:
                     if self.data[member_dn]['objectClass'] == 'group':
-                        # print("Group {} is a nested group".format(member_dn))
+                        print("Group {} is a nested group".format(member_dn))
                         count += 1
-        print(f"Processed {processed} records")
+        print(f"Processed {processed} groups, found {count} nested groups")
         return count
 
     def ldap_users_more_than_16_group(self):
@@ -253,6 +242,24 @@ class PureLDIF(LDIFParser):
                         print("gid Mismatch")
 
         print("Uids {}   GIDS {}".format(uidCount, gidCount))
+
+def show_group(ad, ldap):
+    for item in ad.data:
+        if 'sam' in ad.data[item]:
+            id = ad.data[item]['sam']
+            if id in ldap.map_id_dn:
+                ldap_dn = ldap.map_id_dn[id]
+
+                id = ad.data[item]['sam']
+                print("SAM: {}  ".format(id))
+                print("ObjectClass: {}  ".format(ad.data[item]['objectClass']))
+                print("groups")
+                # pprint(ad.data[item]['memberOf'])
+
+                ldap_dn = ldap.map_id_dn[id]
+                print("LDAP")
+                print("groups")
+                pprint(ldap.data[ldap_dn]['memberOf'])
 
 
 if __name__ == "__main__":

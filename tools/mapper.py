@@ -5,27 +5,9 @@ from ldif_parse import PureLDIF
 import argparse
 import concurrent.futures
 
-def show_group(ad, ldap):
-    for item in ad.data:
-        if 'sam' in ad.data[item]:
-            id = ad.data[item]['sam']
-            if id in ldap.map_id_dn:
-                ldap_dn = ldap.map_id_dn[id]
-
-                id = ad.data[item]['sam']
-                print("SAM: {}  ".format(id))
-                print("ObjectClass: {}  ".format(ad.data[item]['objectClass']))
-                print("groups")
-                # pprint(ad.data[item]['memberOf'])
-
-                ldap_dn = ldap.map_id_dn[id]
-                print("LDAP")
-                print("groups")
-                pprint(ldap.data[ldap_dn]['memberOf'])
-
 def create_ps(ldap, ad, args):
     # user & group are the short name like sam & uid
-    ldap_group_dns = {} # keep track of relevant groups we have to support
+    ldap_group_dns = {} # keep track of relevant groups to the user list provided
 
     # user attributes we want to copy from ldap -> AD
     user_attributes = ['uidNumber', 'gidNumber', 'unixHomeDirectory', 'loginShell']
@@ -36,7 +18,7 @@ def create_ps(ldap, ad, args):
             ldap_dn = ldap.map_user_dn[user]
             ldap_gidNumber = ldap.data[ldap_dn]['gidNumber']
 
-            # keep track of which attributes we need to update in AD
+            # keep track of which attributes we need to update in AD for this user
             attribs_need_update = {}
 
             # see if LDAP has the primary group
@@ -63,7 +45,7 @@ def create_ps(ldap, ad, args):
                 if in_ad:
                     if a in ldap.data[ldap_dn] and a in ad.data[ad_dn]:
                         if ad.data[ad_dn][a] == ldap.data[ldap_dn][a]:
-                            # we Match yeah!!  nothing to do for this attrib
+                            # We Match yeah!!  nothing to do for this attrib
                             continue
                 attribs_need_update[a] = ldap.data[ldap_dn][a]
 
@@ -121,7 +103,7 @@ def create_ps(ldap, ad, args):
                 if ldap_member_dn in ldap.data:  # does LDAP have this member sam ? 
                     member_sam = ldap.data[ldap_member_dn]['sam']
                     if not member_sam or member_sam not in args.users:
-                        # only add members we care about
+                        # only add members we care about 
                         continue
 
                     if in_ad:
@@ -138,7 +120,7 @@ def create_ps(ldap, ad, args):
                                 continue
 
                     #okay we need to add this member into the ad group:
-                    print(f"Add-ADGroupMember -Identity {ldap_group_sam} -Member {member_sam}")
+                    print(f"Add-ADGroupMember -Identity {ldap_group_sam} -Members {member_sam}")
                     continue
 
                 print(f"# Unable to find ad member SAM for ldap group  {ldap_group_sam} member {ldap_member_dn}")
@@ -158,15 +140,13 @@ def create_ps(ldap, ad, args):
                             if ad_member_ldap_dn not in ldap[ldap_group_dn]['member']:
                                 # okay htis means we need to remove an entry from AD as this member isn't 
                                 # seen on the LDAP side gorup
-                                print("Remove-ADGroupMember -Identity {ldap_group_sam} -Member {ad_member_sam}")
+                                print("Remove-ADGroupMember -Identity {ldap_group_sam} -Members {ad_member_sam}")
                     else:
                         print("# could not find user in ad 2342")
 
 
             # check ad for groups with the prefix that don't exist in AD anymore
-            # Todo
-
-
+            # Todo: groups
 
             
             
@@ -202,10 +182,5 @@ if __name__ == "__main__":
         ad = future_ad.result()
         ldap = future_ldap.result()
     
-    #ad = (args.ad)
-    #ldap = PureLDIF(args.ldap)
-
     create_ps(ldap, ad, args)
-
-
 

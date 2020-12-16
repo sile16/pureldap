@@ -171,9 +171,6 @@ def check_user_lookup_in_ldap(umap, ldap):
 
     print(f"Processed {count} records")
 
-
-
-
 if __name__ == "__main__":
 
     # check_group_lookup_in_ldap(gmap1, ldap)
