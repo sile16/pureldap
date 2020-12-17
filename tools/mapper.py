@@ -8,6 +8,7 @@ import concurrent.futures
 def create_ps(ldap, ad, args):
     # user & group are the short name like sam & uid
     ldap_group_dns = {} # keep track of relevant groups to the user list provided
+    undo_cmds = []
 
     # user attributes we want to copy from ldap -> AD
     user_attributes = ['uidNumber', 'gidNumber', 'unixHomeDirectory', 'loginShell']
@@ -60,6 +61,15 @@ def create_ps(ldap, ad, args):
                 attrib_cmds = []
                 for a in attribs_need_update:
                     attrib_cmds.append(f"{a}=\"{attribs_need_update[a]}\"")
+
+                    original_value = None
+                    if a in ad.data[ad_dn]:
+                        original_value = ad.data[ad_dn][a]
+                    if original_value:
+                        undo_cmds.append(f"Set-ADUser -Identity {user} -replace @{{{a}=\"{original_value}\"}}")
+                    else:
+                        undo_cmds.append(f"Set-ADUser -Identity {user} -clear {a}")
+
                 ps_cmd = "Set-ADUser -Identity {} -replace @{{{}}}"
                 print(ps_cmd.format(user, "; ".join(attrib_cmds)))
 
@@ -97,11 +107,21 @@ def create_ps(ldap, ad, args):
                 ldap_group_sam = ldap_group_sam_prefix
                 print(f"# Need to create group {ldap_group_sam} not in AD")
                 print(f'New-ADGroup -Name "{ldap_group_sam}" -SamAccountName "{ldap_group_sam}" -GroupCategory Security -GroupScope Global -Path "{args.group_ou_dn}"')
+                undo_cmds.append(f'Remove-ADGroup -Identity "{ldap_group_sam}"')
+
 
 
             if not in_ad or (in_ad and ad.data[ad_dn]['gidNumber'] != ldap_gidNumber):
                 ps_cmd = "Set-ADGroup -Identity {} -replace @{{ gidNumber=\"{}\"}}"
                 print(ps_cmd.format(ldap_group_sam, ldap_gidNumber))
+                a = 'gidNumber'
+                original_value = None
+                if a in ad.data[ad_dn]:
+                    original_value = ad.data[ad_dn][a]
+                if original_value:
+                    undo_cmds.append(f"Set-ADGroup -Identity {user} -replace @{{{a}=\"{original_value}\"}}")
+                else:
+                    undo_cmds.append(f"Set-ADGroup -Identity {user} -clear {a}")
 
             # check group members in ldap that don't existin in the AD group
             for ldap_member_dn in ldap.data[ldap_group_dn]['member']:
@@ -126,6 +146,8 @@ def create_ps(ldap, ad, args):
 
                     #okay we need to add this member into the ad group:
                     print(f"Add-ADGroupMember -Identity {ldap_group_sam} -Members {member_sam}")
+                    undo_cmds.append(f"Remove-ADGroupMember -Identity {ldap_group_sam} -Members {member_sam}")
+
                     continue
 
                 print(f"# Unable to find ad member SAM for ldap group  {ldap_group_sam} member {ldap_member_dn}")
@@ -145,13 +167,15 @@ def create_ps(ldap, ad, args):
                             if ad_member_ldap_dn not in ldap[ldap_group_dn]['member']:
                                 # okay htis means we need to remove an entry from AD as this member isn't 
                                 # seen on the LDAP side gorup
-                                print("Remove-ADGroupMember -Identity {ldap_group_sam} -Members {ad_member_sam}")
+                                print(f"Remove-ADGroupMember -Identity {ldap_group_sam} -Members {ad_member_sam}")
+                                undo_cmds.append(f"Add-ADGroupMember -Identity {ldap_group_sam} -Members {ad_member_sam}")
                     else:
                         print("# could not find user in ad 2342")
 
 
             # check ad for groups with the prefix that don't exist in AD anymore
             # Todo: groups
+    return undo_cmds
 
             
             
@@ -174,6 +198,7 @@ if __name__ == "__main__":
       help="Full DN for the OU to create groups into")
     parser.add_argument('-u', '--users', nargs='+', default=[])
     parser.add_argument('--allusers', action='store_true', help="Look at ALL users in LDAP, ignores --users")
+    parser.add_argument('--undo', type=str, help="Write a list of undo command to file which will reverse the changes." )
     args = parser.parse_args()
 
     if args.ldapsearch:
@@ -187,5 +212,10 @@ if __name__ == "__main__":
         ad = future_ad.result()
         ldap = future_ldap.result()
     
-    create_ps(ldap, ad, args)
+    undo_cmds = create_ps(ldap, ad, args)
+
+    if args.undo:
+        with open(args.undo, "w") as outfile:
+            outfile.write('\n'.join(undo_cmds)+'\n')
+
 
