@@ -4,6 +4,7 @@ from pprint import pprint
 from ldif_parse import PureLDIF
 import argparse
 import concurrent.futures
+import sys
 
 def create_ps(ldap, ad, args):
     # user & group are the short name like sam & uid
@@ -187,23 +188,30 @@ def print_ldapsearch():
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser("LDAP Usermapping Tool")
-    parser.add_argument('--ldapsearch', action='store_true',
-      help='Print ldapsearch command you can use to pull ldap data')
-    parser.add_argument('--ad', type=str, help='Active Directory LDIF Dump file')
-    parser.add_argument('--ldap', type=str, help='LDAP LDIF Dump file')
-    parser.add_argument('--group-prefix', type=str, default="ldapmap_", 
+    parser = argparse.ArgumentParser("mapper.py")
+    parser.add_argument('--ldapsearch', action='store_true', 
+      help='Print ldapsearch command you can use to pull ldap data for --ad & --ldap')
+    parser.add_argument('--ad', type=str, metavar="<AD LDIF ldapsearch outputfile>",
+      help='Active Directory LDIF Dump file', required=True)
+    parser.add_argument('--ldap', type=str, metavar="<LDAP LDIF ldapsearch outputfile>",
+      help='LDAP LDIF Dump file', required=True)
+    parser.add_argument('--group-prefix', metavar="<i.e. ldapmap_>", type=str, default="ldapmap_", 
       help="prefix for the imported ldap groups into AD")
-    parser.add_argument('--group-ou-dn', type=str, 
-      help="Full DN for the OU to create groups into")
-    parser.add_argument('-u', '--users', nargs='+', default=[])
+    parser.add_argument('--group-ou-dn', type=str, metavar="< i.e. ou=ldapmap,dc=test,dc=com>",
+      help="Full DN for the OU to create groups into", required=True)
+    parser.add_argument('--undo', metavar="<filename to save undo cmds to>",
+      type=str, help="Write a list of undo command to file which will reverse the changes.")
     parser.add_argument('--allusers', action='store_true', help="Look at ALL users in LDAP, ignores --users")
-    parser.add_argument('--undo', type=str, help="Write a list of undo command to file which will reverse the changes." )
-    args = parser.parse_args()
+    parser.add_argument('-u', '--users', nargs='+', default=[], help="Provide users to be mapped, seperated by spaces")
 
-    if args.ldapsearch:
+    if '--ldapsearch' in sys.argv:
         print_ldapsearch()
         exit()
+
+    args = parser.parse_args()
+
+    if not ( args.users or args.allusers):
+        parser.error("Please provide either --users or the --allusers flag. ")
 
     # parse both files at the same time in threads:
     with concurrent.futures.ThreadPoolExecutor() as executor:
