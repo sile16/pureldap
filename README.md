@@ -4,6 +4,7 @@ Tools to assist with mapping LDAP to AD RFC2307
 # Tools/Mapper
 Takes an LDIF dump of both LDAP and AD, and outputs PowerShell commands necessary to push Uid & Gid From LDAP -> AD, in occordance to RFC2307.
 
+```
 usage: mapper.py [-h] [--ldapsearch] --ad <AD LDIF ldapsearch outputfile>
                  --ldap <LDAP LDIF ldapsearch outputfile>
                  [--group-prefix <i.e. ldapmap_>] --group-ou-dn < i.e.
@@ -29,7 +30,7 @@ optional arguments:
   --allusers            Look at ALL users in LDAP, ignores --users
   -u USERS [USERS ...], --users USERS [USERS ...]
                         Provide users to be mapped, seperated by spaces
-
+```
 
 
 # Proxy
