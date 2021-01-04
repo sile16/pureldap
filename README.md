@@ -1,4 +1,38 @@
 # pureldap
+Tools to assist with mapping LDAP to AD RFC2307
+
+# Tools/Mapper
+Takes an LDIF dump of both LDAP and AD, and outputs PowerShell commands necessary to push Uid & Gid From LDAP -> AD, in occordance to RFC2307.
+
+usage: mapper.py [-h] [--ldapsearch] --ad <AD LDIF ldapsearch outputfile>
+                 --ldap <LDAP LDIF ldapsearch outputfile>
+                 [--group-prefix <i.e. ldapmap_>] --group-ou-dn < i.e.
+                 ou=ldapmap,dc=test,dc=com>
+                 [--undo <filename to save undo cmds to>] [--allusers]
+                 [-u USERS [USERS ...]]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --ldapsearch          Print ldapsearch command you can use to pull ldap data
+                        for --ad & --ldap
+  --ad <AD LDIF ldapsearch outputfile>
+                        Active Directory LDIF Dump file
+  --ldap <LDAP LDIF ldapsearch outputfile>
+                        LDAP LDIF Dump file
+  --group-prefix <i.e. ldapmap_>
+                        prefix for the imported ldap groups into AD
+  --group-ou-dn < i.e. ou=ldapmap,dc=test,dc=com>
+                        Full DN for the OU to create groups into
+  --undo <filename to save undo cmds to>
+                        Write a list of undo command to file which will
+                        reverse the changes.
+  --allusers            Look at ALL users in LDAP, ignores --users
+  -u USERS [USERS ...], --users USERS [USERS ...]
+                        Provide users to be mapped, seperated by spaces
+
+
+
+# Proxy
 LDAP Proxy to sit in front of AD, pull linux UID/GID mappings from NIS and present as AD RFC2307.   Built on the python twisted library.
 
 
