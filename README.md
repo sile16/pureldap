@@ -32,6 +32,26 @@ optional arguments:
                         Provide users to be mapped, seperated by spaces
 ```
 
+## Example
+
+```
+#python3 mappyer.py --ldapsearch
+
+ldapsearch -H <ldap server> -b <search base> -D <bind user> -W -s sub -E pr=1000/noprompt '(&(|(objectclass=user)(objectclass=posixAccount)(objectclass=group)(objectclass=posixGroup))(!(objectclass=computer)))' uid uidNumber gid gidNumber memberOf gecos Name GivenName sAMAccountName cn dn memberUid Member UniqueMember groupOfUniqueNames members objectClass primaryGroupID distinguishedName unixHomeDirectory loginShell sid
+
+#ldapsearch -H <source ldap server> -b <search base> -D <bind user> -W -s sub -E pr=1000/noprompt '(&(|(objectclass=user)(objectclass=posixAccount)(objectclass=group)(objectclass=posixGroup))(!(objectclass=computer)))' uid uidNumber gid gidNumber memberOf gecos Name GivenName sAMAccountName cn dn memberUid Member UniqueMember groupOfUniqueNames members objectClass primaryGroupID distinguishedName unixHomeDirectory loginShell sid > source_ldap.ldif
+
+#ldapsearch -H <ad ldap server> -b <search base> -D <bind user> -W -s sub -E pr=1000/noprompt '(&(|(objectclass=user)(objectclass=posixAccount)(objectclass=group)(objectclass=posixGroup))(!(objectclass=computer)))' uid uidNumber gid gidNumber memberOf gecos Name GivenName sAMAccountName cn dn memberUid Member UniqueMember groupOfUniqueNames members objectClass primaryGroupID distinguishedName unixHomeDirectory loginShell sid > ad_ldap.ldif
+
+
+#python3 mapper.py --ad ad_ldap.ldif --ldap source_ldap.ldif --group-prefix ldapimport_ --group-ou-dn ou=pure-ldapimport,dc=dfwlab,dc=purestorage,dc=com   > example.txt
+```
+
+In example will contain powershell commands to update AD.
+
+
+
+
 
 # Proxy
 LDAP Proxy to sit in front of AD, pull linux UID/GID mappings from NIS and present as AD RFC2307.   Built on the python twisted library.
